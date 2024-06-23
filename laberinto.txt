@@ -1,0 +1,156 @@
+#include <iostream>
+#include <vector>
+#include <cstdlib>
+#include <ctime>
+#include <algorithm>
+
+// Librerías Importadas:
+// - iostream: Permite la entrada y salida de datos.
+// - vector: Permite usar el contenedor de datos vector.
+// - cstdlib: Permite funciones de utilidad general, como generar números aleatorios.
+// - ctime: Permite trabajar con funciones de tiempo.
+// - algorithm: Provee algoritmos estándar, como la función random_shuffle.
+
+using namespace std;
+
+// Esto evita tener que escribir std:: antes de las funciones de la biblioteca estándar, como cout y cin.
+
+const int MAX_SIZE = 100; // Tamaño máximo del laberinto
+
+// Representación del laberinto
+char maze[MAX_SIZE][MAX_SIZE];
+
+// Direcciones posibles (arriba, abajo, izquierda, derecha)
+int dx[] = {-1, 1, 0, 0};
+int dy[] = {0, 0, -1, 1};
+
+// Función para verificar si una celda está dentro de los límites del laberinto
+bool isValid(int x, int y, int rows, int cols) {
+    // Verifica que las coordenadas (x, y) estén dentro de los límites de la matriz del laberinto
+    return (x >= 0 && x < rows && y >= 0 && y < cols);
+}
+
+// Función para generar el laberinto utilizando Backtracking
+void generateMaze(int x, int y, int rows, int cols) {
+    maze[x][y] = '*'; // Marcar la celda actual como parte del camino
+
+    // Genera una permutación aleatoria de las direcciones
+    vector<int> directions = {0, 1, 2, 3};
+    random_shuffle(directions.begin(), directions.end());
+
+    // Intentar moverse en cada dirección de forma aleatoria
+    for (int dir : directions) {
+        int newX = x + dx[dir] * 2; // Calcula la nueva coordenada en la dirección x
+        int newY = y + dy[dir] * 2; // Calcula la nueva coordenada en la dirección y
+
+        if (isValid(newX, newY, rows, cols) && maze[newX][newY] == '#') {
+            // Si la celda vecina es válida y no ha sido visitada, crea un pasillo
+            maze[newX][newY] = '*'; // Marcar la nueva celda como parte del camino
+            maze[x + dx[dir]][y + dy[dir]] = '*'; // Marcar el paso intermedio
+            generateMaze(newX, newY, rows, cols); // Llamada recursiva para continuar desde la nueva celda
+        }
+    }
+}
+
+// Función para resolver el laberinto utilizando Backtracking
+bool solveMaze(int x, int y, int rows, int cols) {
+    if (x == rows - 1 && y == cols - 1) {
+        // Si hemos llegado a la celda de salida, devolvemos true
+        return true;
+    }
+
+    // Marcar la celda actual como parte del camino de solución
+    maze[x][y] = 'o';
+
+    // Explora las celdas vecinas en las cuatro direcciones posibles
+    for (int dir = 0; dir < 4; ++dir) {
+        int newX = x + dx[dir]; // Calcula la nueva coordenada en la dirección x
+        int newY = y + dy[dir]; // Calcula la nueva coordenada en la dirección y
+
+        // Si la celda vecina es válida y es parte del camino o es la salida
+        if (isValid(newX, newY, rows, cols) && (maze[newX][newY] == '*' || maze[newX][newY] == 's')) {
+            if (solveMaze(newX, newY, rows, cols)) {
+                // Si la llamada recursiva devuelve true, el camino es correcto
+                return true;
+            }
+        }
+    }
+
+    // Desmarcar la celda actual si no lleva a la solución
+    maze[x][y] = '*';
+    return false; // No se encontró una solución
+}
+
+// Función para visualizar el laberinto
+void printMaze(int rows, int cols) {
+    // Recorre cada celda del laberinto y la imprime
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            cout << maze[i][j];
+        }
+        cout << endl;
+    }
+}
+
+// Función para garantizar un camino entre la entrada y la salida
+void createGuaranteedPath(int rows, int cols) {
+    int x = 0, y = 0;
+    maze[x][y] = '*';
+    while (x < rows - 1 || y < cols - 1) {
+        if (x < rows - 1 && (rand() % 2 == 0 || y == cols - 1)) {
+            x++;
+        } else if (y < cols - 1) {
+            y++;
+        }
+        maze[x][y] = '*';
+    }
+}
+
+int main() {
+    srand(time(nullptr)); // Inicializa la semilla aleatoria con el tiempo actual
+
+    int rows, cols;
+    cout << "Ingrese el número de filas del laberinto: ";
+    cin >> rows;
+    cout << "Ingrese el número de columnas del laberinto: ";
+    cin >> cols;
+
+    if (rows <= 0 || cols <= 0 || rows > MAX_SIZE || cols > MAX_SIZE) {
+        // Verifica que el tamaño del laberinto sea válido
+        cout << "Tamaño del laberinto no válido." << endl;
+        return 1;
+    }
+
+    // Inicializar el laberinto con muros
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            maze[i][j] = '#';
+        }
+    }
+
+    // Crear un camino garantizado desde la entrada hasta la salida
+    createGuaranteedPath(rows, cols);
+
+    // Genera el laberinto desde la posición inicial
+    generateMaze(0, 0, rows, cols);
+
+    // Asegura que la entrada y la salida estén abiertas
+    maze[0][0] = 'i'; // Entrada
+    maze[rows - 1][cols - 1] = 's'; // Salida
+
+    // Imprimir el laberinto generado
+    cout << "Laberinto Generado:" << endl;
+    printMaze(rows, cols);
+
+    // Resuelve el laberinto desde la entrada
+    if (solveMaze(0, 0, rows, cols)) {
+        cout << "Laberinto resuelto:" << endl;
+        maze[0][0] = 'i'; // Marca de nuevo la entrada
+        maze[rows - 1][cols - 1] = 's'; // Marca de nuevo la salida
+        printMaze(rows, cols); // Visualiza el laberinto con la solución
+    } else {
+        cout << "No se encontró una solución." << endl;
+    }
+
+    return 0;
+}
